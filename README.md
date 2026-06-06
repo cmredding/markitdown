@@ -1,15 +1,15 @@
 # MarkItDown
 
-A single-page browser app for converting files into Markdown with an Anthropic API key.
+A single-page browser app for converting files into Markdown with an OpenAI API key.
 
 ## Use
 
 1. Open the deployed GitHub Pages app.
-2. Paste your Anthropic API key into the key field.
+2. Paste your OpenAI API key into the key field.
 3. Drop or choose files.
 4. Convert, preview, copy, or download the Markdown output.
 
-Your API key is stored only in your browser's local storage. The app calls Anthropic directly from the browser.
+Your API key is stored only in your browser's local storage. The app calls OpenAI directly from the browser.
 
 ## Local Preview
 
