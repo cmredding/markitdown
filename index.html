@@ -388,6 +388,7 @@ const files = [];
 const results = {};
 let currentFile = null;
 let currentTab = 'raw';
+let isConverting = false;
 
 // Theme
 let theme = localStorage.getItem('mid-theme') || 'dark';
@@ -407,17 +408,19 @@ if (savedKey) {
   document.getElementById('apiKey').value = savedKey;
   updateApiStatus(savedKey);
 }
+updateConvertBtn();
 
 function onApiKeyChange() {
   const val = document.getElementById('apiKey').value.trim();
   localStorage.setItem('mid-api-key', val);
   updateApiStatus(val);
   updateConvertBtn();
+  maybeAutoConvert();
 }
 
 function updateApiStatus(key) {
   const el = document.getElementById('apiStatus');
-  if (key && key.startsWith('sk-ant-')) {
+  if (isApiKeyReady()) {
     el.textContent = '✓ set'; el.className = 'api-status ok';
   } else if (key) {
     el.textContent = '? check key'; el.className = 'api-status empty';
@@ -441,12 +444,22 @@ function addFiles(newFiles) {
   });
   renderFileList();
   updateConvertBtn();
+  maybeAutoConvert();
+}
+
+function isApiKeyReady() {
+  return document.getElementById('apiKey').value.trim().startsWith('sk-ant-');
 }
 
 function updateConvertBtn() {
-  const key = document.getElementById('apiKey').value.trim();
   const hasPending = files.some(f => !results[f.name] || results[f.name] === 'error');
-  document.getElementById('convertBtn').disabled = !key || files.length === 0 || !hasPending;
+  const btn = document.getElementById('convertBtn');
+  btn.disabled = isConverting || !isApiKeyReady() || files.length === 0 || !hasPending;
+  if (isConverting) btn.textContent = 'Converting…';
+  else if (!isApiKeyReady()) btn.textContent = 'Add Anthropic API key';
+  else if (files.length === 0) btn.textContent = 'Add files to convert';
+  else if (!hasPending) btn.textContent = 'All files converted';
+  else btn.textContent = 'Convert to Markdown';
 }
 
 function fmt(bytes) {
@@ -465,7 +478,7 @@ function renderFileList() {
 
   list.innerHTML = files.map((f, i) => {
     const res = results[f.name];
-    let chip = '<span class="status-chip s-pending">pending</span>';
+    let chip = '<span class="status-chip s-pending">ready</span>';
     if (res === 'converting') chip = `<span class="status-chip s-converting"><span class="spinner"></span>converting</span>`;
     else if (res && res !== 'error') chip = `<span class="status-chip s-done">✓ done</span>`;
     else if (res === 'error') chip = `<span class="status-chip s-error">error</span>`;
@@ -580,13 +593,23 @@ async function convertFile(file) {
 }
 
 async function convertAll() {
+  if (isConverting) return;
   const btn = document.getElementById('convertBtn');
+  isConverting = true;
   btn.disabled = true;
   btn.textContent = 'Converting…';
-  const pending = files.filter(f => !results[f.name] || results[f.name] === 'error');
-  for (const f of pending) await convertFile(f);
-  btn.textContent = 'Convert to Markdown';
-  updateConvertBtn();
+  try {
+    const pending = files.filter(f => !results[f.name] || results[f.name] === 'error');
+    for (const f of pending) await convertFile(f);
+  } finally {
+    isConverting = false;
+    updateConvertBtn();
+  }
+}
+
+function maybeAutoConvert() {
+  const hasPending = files.some(f => !results[f.name] || results[f.name] === 'error');
+  if (!isConverting && isApiKeyReady() && hasPending) convertAll();
 }
 
 // Output
