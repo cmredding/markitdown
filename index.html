@@ -112,6 +112,10 @@
   }
   .api-input:focus { border-color: var(--accent2); }
   .api-input::placeholder { color: var(--text3); }
+  .api-input.needs-key {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(200,185,122,0.18);
+  }
   .api-status {
     font-size: 11px; font-family: var(--font-mono); padding: 4px 10px;
     border-radius: 20px; white-space: nowrap;
@@ -413,6 +417,7 @@ updateConvertBtn();
 function onApiKeyChange() {
   const val = document.getElementById('apiKey').value.trim();
   localStorage.setItem('mid-api-key', val);
+  document.getElementById('apiKey').classList.remove('needs-key');
   updateApiStatus(val);
   updateConvertBtn();
   maybeAutoConvert();
@@ -454,7 +459,7 @@ function isApiKeyReady() {
 function updateConvertBtn() {
   const hasPending = files.some(f => !results[f.name] || results[f.name] === 'error');
   const btn = document.getElementById('convertBtn');
-  btn.disabled = isConverting || !isApiKeyReady() || files.length === 0 || !hasPending;
+  btn.disabled = isConverting || files.length === 0 || !hasPending;
   if (isConverting) btn.textContent = 'Converting…';
   else if (!isApiKeyReady()) btn.textContent = 'Add Anthropic API key';
   else if (files.length === 0) btn.textContent = 'Add files to convert';
@@ -594,6 +599,10 @@ async function convertFile(file) {
 
 async function convertAll() {
   if (isConverting) return;
+  if (!isApiKeyReady()) {
+    focusApiKey();
+    return;
+  }
   const btn = document.getElementById('convertBtn');
   isConverting = true;
   btn.disabled = true;
@@ -610,6 +619,14 @@ async function convertAll() {
 function maybeAutoConvert() {
   const hasPending = files.some(f => !results[f.name] || results[f.name] === 'error');
   if (!isConverting && isApiKeyReady() && hasPending) convertAll();
+}
+
+function focusApiKey() {
+  const input = document.getElementById('apiKey');
+  input.classList.add('needs-key');
+  input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  input.focus();
+  showToast('Add your Anthropic API key to start converting');
 }
 
 // Output
